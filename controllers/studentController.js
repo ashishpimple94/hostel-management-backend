@@ -53,11 +53,74 @@ exports.getStudent = async (req, res) => {
 // @access  Private (Admin/Warden)
 exports.createStudent = async (req, res) => {
   try {
+    // Validate required fields
+    const { firstName, lastName, email, studentId, phone } = req.body;
+    
+    const missingFields = [];
+    if (!firstName || (typeof firstName === 'string' && firstName.trim() === '')) {
+      missingFields.push('firstName');
+    }
+    if (!lastName || (typeof lastName === 'string' && lastName.trim() === '')) {
+      missingFields.push('lastName');
+    }
+    if (!email || (typeof email === 'string' && email.trim() === '')) {
+      missingFields.push('email');
+    }
+    if (!studentId || (typeof studentId === 'string' && studentId.trim() === '')) {
+      missingFields.push('studentId');
+    }
+    if (!phone || (typeof phone === 'string' && phone.trim() === '')) {
+      missingFields.push('phone');
+    }
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}. Please fill all required fields.`
+      });
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid email format. Please enter a valid email address.'
+      });
+    }
+
+    // Validate phone format (should be numeric and 10 digits minimum)
+    const phoneRegex = /^[0-9]{10,}$/;
+    if (!phoneRegex.test(phone.trim().replace(/[\s\-\(\)]/g, ''))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid phone number. Please enter a valid phone number (minimum 10 digits).'
+      });
+    }
+
+    // Check if email already exists
+    const existingStudent = await Student.findOne({ email: email.trim().toLowerCase() });
+    if (existingStudent) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email already exists. Please use a different email address.'
+      });
+    }
+
+    // Check if studentId already exists
+    const existingStudentId = await Student.findOne({ studentId: studentId.trim() });
+    if (existingStudentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Student ID already exists. Please use a different student ID.'
+      });
+    }
+
     const student = await Student.create(req.body);
 
     // Create user account for student
     await User.create({
-      email: req.body.email,
+      email: req.body.email.trim().toLowerCase(),
       password: req.body.password || 'student123',
       role: 'student',
       studentId: student._id
@@ -68,7 +131,21 @@ exports.createStudent = async (req, res) => {
       data: student
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Create student error:', error);
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      return res.status(400).json({
+        success: false,
+        message: `${field} already exists. Please use a different ${field}.`
+      });
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'An error occurred while creating student. Please try again.' 
+    });
   }
 };
 
@@ -143,55 +220,29 @@ exports.getStudentLedger = async (req, res) => {
     // Get all fees for the student
     const fees = await Fee.find({ student: req.params.id }).sort('dueDate');
 
-    // Calculate ledger entries with running balance
-    let runningBalance = 0;
-    const ledgerEntries = fees.map(fee => {
-      runningBalance += fee.amount;
-      const entry = {
-        _id: fee._id,
-        date: fee.dueDate,
-        type: fee.feeType,
-        description: `${fee.feeType.charAt(0).toUpperCase() + fee.feeType.slice(1)} Fee - Semester ${fee.semester}, Year ${fee.year}`,
-        debit: fee.amount,
-        credit: 0,
-        balance: runningBalance,
-        status: fee.status,
-        paidDate: fee.paidDate,
-        paymentMethod: fee.paymentMethod,
-        transactionId: fee.transactionId,
-        semester: fee.semester,
-        year: fee.year
-      };
-
-      // If paid, add payment entry
-      if (fee.status === 'paid' && fee.paidDate) {
-        runningBalance -= fee.amount;
-      }
-
-      return entry;
-    });
-
     // Create complete ledger with payment entries
     const completeLedger = [];
     fees.forEach(fee => {
-      // Add fee entry
-      const semesterInfo = fee.semester ? ` - Semester ${fee.semester}` : '';
-      const yearInfo = fee.year ? `, Year ${fee.year}` : '';
-      completeLedger.push({
-        _id: fee._id + '_fee',
-        date: fee.dueDate,
-        type: 'Fee',
-        description: `${fee.feeType.charAt(0).toUpperCase() + fee.feeType.slice(1)} Fee${semesterInfo}${yearInfo}`,
-        debit: fee.amount,
-        credit: 0,
-        status: fee.status,
-        paidDate: fee.paidDate || null,
-        transactionId: fee.transactionId || null,
-        paymentMethod: fee.paymentMethod || null,
-        semester: fee.semester || null,
-        year: fee.year || null,
-        feeId: fee._id
-      });
+      // Add fee entry (but skip if it's already a refund entry with status 'refunded')
+      if (!(fee.status === 'refunded' && fee.feeType === 'other')) {
+        const semesterInfo = fee.semester ? ` - Semester ${fee.semester}` : '';
+        const yearInfo = fee.year ? `, Year ${fee.year}` : '';
+        completeLedger.push({
+          _id: fee._id + '_fee',
+          date: fee.dueDate,
+          type: 'Fee',
+          description: `${fee.feeType.charAt(0).toUpperCase() + fee.feeType.slice(1)} Fee${semesterInfo}${yearInfo}`,
+          debit: fee.amount,
+          credit: 0,
+          status: fee.status,
+          paidDate: fee.paidDate || null,
+          transactionId: fee.transactionId || null,
+          paymentMethod: fee.paymentMethod || null,
+          semester: fee.semester || null,
+          year: fee.year || null,
+          feeId: fee._id
+        });
+      }
 
       // Add payment entry if paid
       if (fee.status === 'paid' && fee.paidDate) {
@@ -205,6 +256,22 @@ exports.getStudentLedger = async (req, res) => {
           status: 'paid',
           transactionId: fee.transactionId,
           paymentMethod: fee.paymentMethod,
+          feeId: fee._id
+        });
+      }
+      
+      // Add refund entry if refunded - mark as Other not Refund since hostel policy doesn't allow full refunds
+      if (fee.status === 'refunded' && fee.paidDate) {
+        completeLedger.push({
+          _id: fee._id + '_refund',
+          date: fee.paidDate,
+          type: 'Other',
+          description: fee.remarks || 'Refund processed',
+          debit: 0,
+          credit: fee.amount,
+          status: 'refunded',
+          transactionId: fee.transactionId || null,
+          paymentMethod: fee.paymentMethod || null,
           feeId: fee._id
         });
       }

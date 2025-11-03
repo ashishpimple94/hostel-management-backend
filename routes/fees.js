@@ -7,7 +7,8 @@ const {
   updateFee,
   payFee,
   getStudentFees,
-  deleteFee
+  deleteFee,
+  checkOut
 } = require('../controllers/feeController');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -20,12 +21,14 @@ router
 
 router.get('/student/:studentId', getStudentFees);
 
+// Specific routes must come before generic :id routes
+router.put('/:id/pay', authorize('student', 'admin', 'accountant'), payFee);
+router.post('/:feeId/checkout', authorize('admin', 'accountant'), checkOut);
+
 router
   .route('/:id')
   .get(getFee)
   .put(authorize('admin', 'accountant'), updateFee)
   .delete(authorize('admin'), deleteFee);
-
-router.put('/:id/pay', authorize('student', 'admin', 'accountant'), payFee);
 
 module.exports = router;

@@ -13,12 +13,45 @@ exports.getDashboardStats = async (req, res) => {
       // Admin/Warden Dashboard
       const totalStudents = await Student.countDocuments({ status: 'active' });
       const totalRooms = await Room.countDocuments();
-      const occupiedRooms = await Room.countDocuments({ 
+      
+      // Count fully occupied rooms (where occupied >= capacity)
+      const fullyOccupiedRooms = await Room.countDocuments({ 
         $expr: { $gte: ['$occupied', '$capacity'] } 
       });
-      const availableRooms = totalRooms - occupiedRooms;
+      
+      // Count rooms with at least one occupant (partially or fully occupied)
+      const roomsWithOccupants = await Room.countDocuments({ 
+        occupied: { $gt: 0 } 
+      });
+      
+      // Available rooms (rooms with vacant beds)
+      const availableRooms = await Room.countDocuments({ 
+        $expr: { $lt: ['$occupied', '$capacity'] } 
+      });
+      
+      // AC/Non-AC breakdown for available rooms
+      const availableACRooms = await Room.countDocuments({ 
+        isAC: true,
+        $expr: { $lt: ['$occupied', '$capacity'] } 
+      });
+      
+      const availableNonACRooms = await Room.countDocuments({ 
+        isAC: false,
+        $expr: { $lt: ['$occupied', '$capacity'] } 
+      });
+      
+      // AC/Non-AC breakdown for occupied rooms
+      const occupiedACRooms = await Room.countDocuments({ 
+        isAC: true,
+        occupied: { $gt: 0 } 
+      });
+      
+      const occupiedNonACRooms = await Room.countDocuments({ 
+        isAC: false,
+        occupied: { $gt: 0 } 
+      });
 
-      const pendingComplaints = await Complaint.countDocuments({ 
+      const pendingComplaints = await Complaint.countDocuments({
         status: { $in: ['pending', 'assigned'] } 
       });
 
@@ -43,8 +76,16 @@ exports.getDashboardStats = async (req, res) => {
         },
         rooms: {
           total: totalRooms,
-          occupied: occupiedRooms,
-          available: availableRooms
+          occupied: roomsWithOccupants,
+          available: availableRooms,
+          ac: {
+            available: availableACRooms,
+            occupied: occupiedACRooms
+          },
+          nonAC: {
+            available: availableNonACRooms,
+            occupied: occupiedNonACRooms
+          }
         },
         complaints: {
           pending: pendingComplaints
@@ -53,7 +94,7 @@ exports.getDashboardStats = async (req, res) => {
           pending: pendingFees,
           overdue: overdueFees,
           collected: totalFeeAmount[0]?.total || 0,
-          pending: pendingFeeAmount[0]?.total || 0
+          pendingAmount: pendingFeeAmount[0]?.total || 0
         }
       };
     } else if (role === 'student') {

@@ -18,16 +18,14 @@ const syncPendingFees = async () => {
     console.log(`📊 Found ${students.length} students`);
 
     for (const student of students) {
-      // Get all pending fees for this student
+      
       const pendingFees = await Fee.find({
         student: student._id,
         status: { $in: ['pending', 'overdue'] }
       }).sort('dueDate');
 
-      // Calculate total pending amount
       const totalPendingAmount = pendingFees.reduce((sum, fee) => sum + fee.amount, 0);
 
-      // Get earliest and latest pending fee dates
       const hasPendingFees = pendingFees.length > 0;
       const pendingFeesFrom = hasPendingFees ? pendingFees[0].dueDate : null;
       const pendingFeesUntil = hasPendingFees ? pendingFees[pendingFees.length - 1].dueDate : null;

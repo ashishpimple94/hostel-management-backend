@@ -55,10 +55,61 @@ exports.createComplaint = async (req, res) => {
       req.body.student = req.user.studentId;
     }
 
+    // Validate required fields
+    const { category, description, priority } = req.body;
+    
+    const missingFields = [];
+    if (!category || (typeof category === 'string' && category.trim() === '')) {
+      missingFields.push('category');
+    }
+    if (!description || (typeof description === 'string' && description.trim() === '')) {
+      missingFields.push('description');
+    }
+    if (!priority || (typeof priority === 'string' && priority.trim() === '')) {
+      missingFields.push('priority');
+    }
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}. Please fill all required fields.`
+      });
+    }
+
+    // Validate category is valid
+    const validCategories = ['maintenance', 'cleanliness', 'food', 'security', 'other'];
+    if (!validCategories.includes(category.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid category. Must be one of: ${validCategories.join(', ')}`
+      });
+    }
+
+    // Validate priority is valid
+    const validPriorities = ['low', 'medium', 'high', 'urgent'];
+    if (!validPriorities.includes(priority.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid priority. Must be one of: ${validPriorities.join(', ')}`
+      });
+    }
+
+    // Validate description length
+    if (description.trim().length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: 'Description must be at least 10 characters long. Please provide more details.'
+      });
+    }
+
     const complaint = await Complaint.create(req.body);
     res.status(201).json({ success: true, data: complaint });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Create complaint error:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: error.message || 'An error occurred while creating complaint. Please try again.' 
+    });
   }
 };
 

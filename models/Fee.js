@@ -22,7 +22,7 @@ const feeSchema = new mongoose.Schema({
   paidDate: Date,
   status: {
     type: String,
-    enum: ['pending', 'paid', 'overdue', 'partial'],
+    enum: ['pending', 'paid', 'overdue', 'partial', 'checked_out', 'refunded'],
     default: 'pending'
   },
   paymentMethod: {
@@ -33,6 +33,32 @@ const feeSchema = new mongoose.Schema({
   semester: Number,
   year: Number,
   remarks: String,
+  // Package and checkout tracking
+  packageType: {
+    type: String,
+    enum: ['1month', '2months', '3months', '4months', '5months']
+  },
+  checkInDate: Date,
+  checkOutDate: Date,
+  actualStayMonths: Number,
+  depositAmount: {
+    type: Number,
+    default: 0
+  },
+  rentAmount: {
+    type: Number,
+    default: 0
+  },
+  messAmount: {
+    type: Number,
+    default: 0
+  },
+  refundAmount: {
+    type: Number,
+    default: 0
+  },
+  refundReason: String,
+  bedLabel: String, // Bed selected during fee creation
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'

@@ -42,6 +42,11 @@ const roomSchema = new mongoose.Schema({
       type: Number,
       required: true
     },
+    bedLabel: {
+      type: String,
+      enum: ['A', 'B', 'C', 'D'],
+      required: true
+    },
     isOccupied: {
       type: Boolean,
       default: false
@@ -66,6 +71,14 @@ const roomSchema = new mongoose.Schema({
   rentFor5Months: {
     type: Number,
     required: true
+  },
+  // Month-wise rent structure (rent per month varies by duration)
+  rentPerMonth: {
+    '1month': { type: Number, default: 0 },
+    '2months': { type: Number, default: 0 },
+    '3months': { type: Number, default: 0 },
+    '4months': { type: Number, default: 0 },
+    '5months': { type: Number, default: 0 }
   },
   // Package information
   messChargePerMonth: {
@@ -116,9 +129,11 @@ roomSchema.pre('save', function(next) {
   // Initialize beds array if not present
   if (!this.beds || this.beds.length === 0) {
     this.beds = [];
+    const bedLabels = ['A', 'B', 'C', 'D'];
     for (let i = 1; i <= this.capacity; i++) {
       this.beds.push({
         bedNumber: i,
+        bedLabel: bedLabels[i - 1],
         isOccupied: false,
         studentId: null
       });
