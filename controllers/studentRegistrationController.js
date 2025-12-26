@@ -267,7 +267,10 @@ exports.submitRegistration = async (req, res) => {
 // @access  Private (Admin/Warden)
 exports.getPendingRegistrations = async (req, res) => {
   try {
-    console.log('📋 getPendingRegistrations called by user:', req.user?.email || 'Unknown');
+    console.log('📋 getPendingRegistrations called');
+    console.log('   User:', req.user?.email || 'Unknown');
+    console.log('   URL:', req.originalUrl);
+    console.log('   Method:', req.method);
     
     // First, check total registrations in database
     const totalRegistrations = await StudentRegistration.countDocuments();
