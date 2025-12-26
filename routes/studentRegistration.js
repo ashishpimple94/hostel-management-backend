@@ -21,11 +21,17 @@ router.use(protect);
 // CRITICAL ROUTE ORDER: Specific routes MUST come before parameterized routes
 // Express matches routes in the order they are defined
 
-// 1. Get pending registrations (specific route - MUST be FIRST before /:id)
-router.get('/pending', authorize('admin', 'warden'), getPendingRegistrations);
+// 1. Get pending registrations (specific route - MUST be FIRST, before / and /:id)
+router.get('/pending', authorize('admin', 'warden'), (req, res, next) => {
+  console.log('✅ /pending route matched');
+  getPendingRegistrations(req, res, next);
+});
 
 // 2. Get all registrations (root route - must come after /pending but before /:id)
-router.get('/', authorize('admin', 'warden'), getAllRegistrations);
+router.get('/', authorize('admin', 'warden'), (req, res, next) => {
+  console.log('✅ / route matched (getAllRegistrations)');
+  getAllRegistrations(req, res, next);
+});
 
 // 3. Approve registration (specific route with /approve suffix - before /:id)
 router.post('/:id/approve', authorize('admin', 'warden'), approveRegistration);
