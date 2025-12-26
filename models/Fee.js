@@ -27,9 +27,34 @@ const feeSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['cash', 'card', 'upi', 'netbanking', 'other']
+    enum: ['online', 'cash']
   },
   transactionId: String,
+  // Payment split for hostel fees (rent → Youstel, mess → HUF)
+  paidAmount: {
+    type: Number,
+    default: 0
+  },
+  youstelAmount: {
+    type: Number,
+    default: 0
+  },
+  hufAmount: {
+    type: Number,
+    default: 0
+  },
+  youstelVoucher: {
+    type: String,
+    default: null
+  },
+  hufVoucher: {
+    type: String,
+    default: null
+  },
+  remainingBalance: {
+    type: Number,
+    default: 0
+  },
   semester: Number,
   year: Number,
   remarks: String,
@@ -58,10 +83,41 @@ const feeSchema = new mongoose.Schema({
     default: 0
   },
   refundReason: String,
+  // Room details (preserved for history when student changes rooms)
+  roomNumber: String, // Room number at time of fee creation
   bedLabel: String, // Bed selected during fee creation
+  roomType: String, // Room type: single, double, triple, quadruple
+  // Mess provider/account (only for mess fees)
+  messProvider: {
+    type: String,
+    enum: ['yustel', 'huf', 'other'],
+    default: null
+  },
+  messAccountNumber: {
+    type: String,
+    default: null
+  },
+  // Bank account details (for hostel and mess fees)
+  bankAccountNumber: {
+    type: String,
+    default: null
+  },
+  bankName: {
+    type: String,
+    default: null
+  },
+  bankIFSC: {
+    type: String,
+    default: null
+  },
   createdBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
+  },
+  source: {
+    type: String,
+    enum: ['manual', 'checklist_auto', 'registration_auto'],
+    default: 'manual'
   },
   createdAt: {
     type: Date,

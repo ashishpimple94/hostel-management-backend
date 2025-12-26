@@ -12,6 +12,10 @@ const studentSchema = new mongoose.Schema({
     required: [true, 'First name is required'],
     trim: true
   },
+  middleName: {
+    type: String,
+    trim: true
+  },
   lastName: {
     type: String,
     required: [true, 'Last name is required'],
@@ -40,6 +44,18 @@ const studentSchema = new mongoose.Schema({
     type: String,
     enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
   },
+  religion: {
+    type: String,
+    trim: true
+  },
+  caste: {
+    type: String,
+    trim: true
+  },
+  aadharNumber: {
+    type: String,
+    trim: true
+  },
   address: {
     street: String,
     city: String,
@@ -47,10 +63,22 @@ const studentSchema = new mongoose.Schema({
     pincode: String,
     country: String
   },
+  profilePhoto: {
+    type: String,
+    trim: true
+  },
   // Academic Info
+  institute: {
+    type: String,
+    trim: true
+  },
   department: {
     type: String,
     default: 'Not Assigned'
+  },
+  previousEducationDetails: {
+    type: String,
+    trim: true
   },
   course: {
     type: String,
@@ -68,10 +96,20 @@ const studentSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   },
+  admissionUpToDate: {
+    type: Date
+  },
+  admissionMonths: {
+    type: Number
+  },
   // Guardian Info
   guardianName: {
     type: String,
     default: 'To be updated'
+  },
+  guardianLocalName: {
+    type: String,
+    trim: true
   },
   guardianPhone: {
     type: String,
@@ -82,16 +120,46 @@ const studentSchema = new mongoose.Schema({
     default: 'To be updated'
   },
   guardianEmail: String,
+  motherName: {
+    type: String,
+    trim: true
+  },
+  fatherName: {
+    type: String,
+    trim: true
+  },
+  motherMobileNumber: {
+    type: String,
+    trim: true
+  },
+  fatherMobileNumber: {
+    type: String,
+    trim: true
+  },
+  guardianLocalArea: {
+    type: String,
+    trim: true
+  },
   // Room Allocation
   roomNo: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Room'
   },
   allocationDate: Date,
+  // Mess Provider/Account (yousel/huf)
+  messProvider: {
+    type: String,
+    enum: ['yustel', 'huf', 'other', null],
+    default: null
+  },
+  messAccountNumber: {
+    type: String,
+    default: null
+  },
   // Status
   status: {
     type: String,
-    enum: ['active', 'inactive', 'graduated', 'suspended'],
+    enum: ['active', 'inactive', 'graduated', 'suspended', 'registered'],
     default: 'active'
   },
   // Pending Fees Information
